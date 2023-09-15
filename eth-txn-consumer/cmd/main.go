@@ -23,9 +23,9 @@ func main() {
 
 	client := resty.New()
 
-	blockAdaptorRepo := adaptor.NewBlockAdaptorApiRepositories(client,config.Get().BlockAdaptorApi.Url)
+	blockAdaptorRepo := adaptor.NewTransactionAdaptorApiRepositories(client, config.Get().TransactionAdaptorApi.Url)
 	consumeService := service.NewConsumeService(blockAdaptorRepo)
-	consumeHandler := handler.NewConsumerHandler(consumer, config.Get().Kafka.Topic,consumeService)
+	consumeHandler := handler.NewConsumerHandler(consumer, config.Get().Kafka.Topic, consumeService)
 
 	// Trap signals to gracefully shut down the consumer
 	sigchan := make(chan os.Signal, 1)

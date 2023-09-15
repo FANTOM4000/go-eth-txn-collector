@@ -1,7 +1,6 @@
 package adaptor
 
 import (
-	"app/config"
 	"app/internal/core/domains"
 	"app/internal/core/ports"
 	"fmt"
@@ -12,16 +11,17 @@ import (
 
 type blockAdaptorApiRepositories struct {
 	restyClient *resty.Client
+	Url         string
 }
 
-func NewBlockAdaptorApiRepositories(restyClient *resty.Client) ports.BlockAdaptorApiRepositories {
-	return blockAdaptorApiRepositories{restyClient: restyClient}
+func NewBlockAdaptorApiRepositories(restyClient *resty.Client, Url string) ports.BlockAdaptorApiRepositories {
+	return blockAdaptorApiRepositories{restyClient: restyClient, Url: Url}
 }
 
 func (b blockAdaptorApiRepositories) ProduceTransaction(hash string) (domains.BlockAdaptorApiResponse, error) {
 	blockRes := new(domains.BlockAdaptorApiResponse)
 	resp, err := b.restyClient.R().
-		Post(fmt.Sprint(config.Get().BlockAdaptorApi, "/", hash))
+		Post(fmt.Sprint(b.Url, "/block/", hash, "/transactions"))
 	jsoniter.Unmarshal(resp.Body(), &blockRes)
 
 	if err != nil {

@@ -1,11 +1,13 @@
 package handler
 
 import (
+	"app/internal/core/domains"
 	"app/internal/core/ports"
 	"app/pkg/logger"
 	"fmt"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
+	jsoniter "github.com/json-iterator/go"
 )
 
 type consumeHandler struct {
@@ -33,7 +35,13 @@ func (c consumeHandler) Consume() {
 			switch e := ev.(type) {
 			case *kafka.Message:
 				logger.Info("Received message", logger.StringField("topic", *e.TopicPartition.Topic), logger.StringField("partition", e.TopicPartition.Partition), logger.StringField("offset", e.TopicPartition.Offset), logger.StringField("message", string(e.Value)))
-				err = c.consumeService.Consume(string(e.Value))
+				txn := domains.Transaction{}
+				err = jsoniter.UnmarshalFromString(string(e.Value),&txn)
+				if err != nil {
+					logger.Error("error unmarshal json", logger.ErrField(err))
+					return
+				}
+				err = c.consumeService.Consume(txn)
 				if err != nil {
 					logger.Error("error consume", logger.ErrField(err))
 					return
