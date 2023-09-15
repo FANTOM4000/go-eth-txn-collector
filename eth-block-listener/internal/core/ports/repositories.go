@@ -1,5 +1,5 @@
 package ports
 
 type BlockQueRepositories interface {
-	Produce(hex string) error
+	Produce(number uint64) error
 }

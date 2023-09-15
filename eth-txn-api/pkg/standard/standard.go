@@ -1,6 +1,8 @@
 package standard
 
 const (
-	SuccessCode = 1000
-	CreateError = 5001
+	SuccessCode  = 1000
+	CreateError  = 5001
+	GetDataError = 5002
+	GenericError = 6000
 )

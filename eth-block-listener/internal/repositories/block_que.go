@@ -15,13 +15,13 @@ func NewBlockQueRepositories(kafkaClient *kafka.Producer, Topic string) ports.Bl
 	return blockQueRepositories{kafkaClient: kafkaClient, Topic: Topic}
 }
 
-func (b blockQueRepositories) Produce(hex string) error {
+func (b blockQueRepositories) Produce(number uint64) error {
 	deliverChan := make(chan kafka.Event)
 
 	b.kafkaClient.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &b.Topic, Partition: -1},
-		Key:            []byte(hex),
-		Value:          []byte(hex),
+		Key:            []byte(string(number)),
+		Value:          []byte(string(number)),
 	}, deliverChan)
 	<-deliverChan
 	return nil

@@ -4,40 +4,100 @@ import (
 	"app/internal/core/domains"
 	"app/internal/core/ports"
 	"app/pkg/logger"
-	"bytes"
-	"fmt"
-	"strings"
+	"context"
 
-	elasticsearch7 "github.com/elastic/go-elasticsearch/v7"
+	elasticsearch8 "github.com/elastic/go-elasticsearch/v8"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/core/search"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/indices/create"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
 	jsoniter "github.com/json-iterator/go"
 )
 
 type transactionRepositories struct {
-	elasticClient *elasticsearch7.Client
+	elasticClient *elasticsearch8.TypedClient
 	index         string
 }
 
-func NewTransactionRepositories(elasticClient *elasticsearch7.Client, index string) ports.TransactionRepositories {
+func NewTransactionRepositories(ctx context.Context, elasticClient *elasticsearch8.TypedClient, index string) ports.TransactionRepositories {
+	res, err := elasticClient.Indices.Exists(index).Do(ctx)
+	if err != nil {
+		logger.Fatal("check indice error", logger.ErrField(err))
+	}
+	if !res {
+		_, err := elasticClient.Indices.Create(index).Request(&create.Request{
+			Mappings: &types.TypeMapping{
+				Properties: map[string]types.Property{
+					"sender":   types.NewKeywordProperty(),
+					"reciever": types.NewKeywordProperty(),
+				},
+			},
+		}).Do(ctx)
+		if err != nil {
+			logger.Fatal("create indice with mapping error")
+		}
+	}
 	return transactionRepositories{elasticClient: elasticClient, index: index}
 }
 
-func (t transactionRepositories) Save(txn domains.Transaction) (domains.Transaction, error) {
-	b, err := jsoniter.Marshal(txn)
+func (t transactionRepositories) Save(ctx context.Context, txn domains.Transaction) (domains.Transaction, error) {
+	res, err := t.elasticClient.Index(t.index).Id(txn.Hex).Request(txn).Do(ctx)
 	if err != nil {
 		return domains.Transaction{}, err
 	}
 
-	res, err := t.elasticClient.Index(t.index, bytes.NewReader(b), t.elasticClient.Index.WithDocumentID(txn.Hex))
-	if err != nil {
-		return domains.Transaction{}, err
-	}
-	logger.Info("save transaction", logger.StringField("response", res.String()))
+	logger.Info("save transaction", logger.Field("response", res))
 	return txn, nil
 }
-func (t transactionRepositories) GetByContainAddress(addr string, page int, perpage int) ([]domains.Transaction, error) {
-	query := fmt.Sprintf(`{"query":{"bool":{"should":[{"term":{"sender":"%s"}},{"term":{"reciever":"%s"}}]}}}`, addr,addr)
-	t.elasticClient.Search(
-		t.elasticClient.Search.WithIndex(t.index),
-		t.elasticClient.Search.WithBody(strings.NewReader(query)),
-	)
+func (t transactionRepositories) GetByContainAddress(ctx context.Context, addr string, page int, perpage int) ([]domains.Transaction, error) {
+	if page < 1 {
+		page = 1
+	}
+	if perpage < 1 {
+		perpage = 1
+	}
+	size := perpage
+	from := (page - 1) * perpage
+
+	res, err := t.elasticClient.Search().Index(t.index).Request(
+		&search.Request{
+			Query: &types.Query{
+				Bool: &types.BoolQuery{
+					Should: []types.Query{
+						{
+							Term: map[string]types.TermQuery{
+								"sender": {Value: addr},
+							},
+						},
+						{
+							Term: map[string]types.TermQuery{
+								"reciever": {Value: addr},
+							},
+						},
+					},
+				},
+			},
+			Size: &size,
+			From: &from,
+		},
+	).Do(ctx)
+
+	if err != nil {
+		return []domains.Transaction{}, err
+	}
+
+	txns := []domains.Transaction{}
+	for _, v := range res.Hits.Hits {
+		b, err := v.Source_.MarshalJSON()
+		if err != nil {
+			return []domains.Transaction{}, err
+		}
+		tx := new(domains.Transaction)
+		err = jsoniter.Unmarshal(b, tx)
+		if err != nil {
+			return []domains.Transaction{}, err
+		}
+		txns = append(txns, *tx)
+	}
+
+	return txns, nil
 }

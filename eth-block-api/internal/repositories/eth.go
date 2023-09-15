@@ -6,8 +6,8 @@ import (
 	"app/pkg/logger"
 	"context"
 	"fmt"
+	"math/big"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 )
@@ -20,8 +20,8 @@ func NewEthRepositories(ethClient *ethclient.Client) ports.EthRepositories {
 	return ethRepositories{ethClient: ethClient}
 }
 
-func (e ethRepositories) GetTransactionByBlockHash(ctx context.Context, hex string) ([]domains.Transaction, error) {
-	block, err := e.ethClient.BlockByHash(ctx, common.HexToHash(hex))
+func (e ethRepositories) GetTransactionByBlockHash(ctx context.Context, number uint64) ([]domains.Transaction, error) {
+	block, err := e.ethClient.BlockByNumber(ctx, big.NewInt(int64(number)))
 	if err != nil {
 		return []domains.Transaction{}, err
 	}

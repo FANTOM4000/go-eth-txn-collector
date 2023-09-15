@@ -32,7 +32,8 @@ func (b blockQueHandler) ListenNewBlock() {
 			return
 		case header := <-headers:
 			logger.Info("New block", logger.StringField("hex", header.Hash().Hex()))
-			err = b.blockQueService.Produce(header.Hash().Hex())
+
+			err = b.blockQueService.Produce(header.Number.Uint64())
 			if err != nil {
 				logger.Error("error produce new block", logger.StringField("hex", header.Hash().Hex()))
 			}

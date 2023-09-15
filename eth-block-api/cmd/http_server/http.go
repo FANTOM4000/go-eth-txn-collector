@@ -15,7 +15,7 @@ func NewHttpServer(blockHandler ports.BlockHandler) *fiber.App {
 		Format: "[${time}] ${ip}  ${status} - ${latency} ${method} ${path}\n",
 	}))
 
-	r.Post("/block/{hex}/transactions",blockHandler.ProduceTrasactionFromBlockHash)
+	r.Post("/block/number/{hex}/transactions",blockHandler.ProduceTrasactionFromBlockHash)
 
 	return r
 }

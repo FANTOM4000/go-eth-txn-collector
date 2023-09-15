@@ -4,6 +4,7 @@ import (
 	"app/internal/core/ports"
 	"app/pkg/logger"
 	"fmt"
+	"strconv"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
@@ -33,7 +34,12 @@ func (c consumeHandler) Consume() {
 			switch e := ev.(type) {
 			case *kafka.Message:
 				logger.Info("Received message", logger.StringField("topic", *e.TopicPartition.Topic), logger.StringField("partition", e.TopicPartition.Partition), logger.StringField("offset", e.TopicPartition.Offset), logger.StringField("message", string(e.Value)))
-				err = c.consumeService.Consume(string(e.Value))
+				number,err := strconv.ParseUint(string(e.Value),10,64)
+				if err != nil {
+					logger.Error("error parse uint64", logger.ErrField(err))
+					return
+				}
+				err = c.consumeService.Consume(number)
 				if err != nil {
 					logger.Error("error consume", logger.ErrField(err))
 					return

@@ -18,8 +18,8 @@ func NewBlockService(ethRepo ports.EthRepositories, transactionQueRepo ports.Tra
 	return blockService{ethRepo: ethRepo, transactionQueRepo: transactionQueRepo}
 }
 
-func (b blockService) ProduceTrasactionFromBlockHash(ctx context.Context, hex string) (dto.BaseOKResponseWithData[[]domains.Transaction], error) {
-	txns, err := b.ethRepo.GetTransactionByBlockHash(ctx, hex)
+func (b blockService) ProduceTrasactionFromBlockHash(ctx context.Context, number uint64) (dto.BaseOKResponseWithData[[]domains.Transaction], error) {
+	txns, err := b.ethRepo.GetTransactionByBlockHash(ctx, number)
 	if err != nil {
 		logger.Error("get txns from eth client error", logger.ErrField(err))
 		return dto.BaseOKResponseWithData[[]domains.Transaction]{

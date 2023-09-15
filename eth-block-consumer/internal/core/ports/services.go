@@ -1,5 +1,5 @@
 package ports
 
 type ConsumerService interface {
-	Consume(blockHash string) error
+	Consume(number uint64) error
 }

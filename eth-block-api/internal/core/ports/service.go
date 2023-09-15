@@ -7,5 +7,5 @@ import (
 )
 
 type BlockService interface {
-	ProduceTrasactionFromBlockHash(ctx context.Context, hex string) (dto.BaseOKResponseWithData[[]domains.Transaction], error)
+	ProduceTrasactionFromBlockHash(ctx context.Context, number uint64) (dto.BaseOKResponseWithData[[]domains.Transaction], error)
 }

@@ -14,8 +14,8 @@ func NewConsumeService(ConsumeRepo ports.BlockAdaptorApiRepositories) ports.Cons
 	return consumeService{ConsumeRepo: ConsumeRepo}
 }
 
-func (c consumeService) Consume(blockHash string) error {
-	blockAdaptorRes,err := c.ConsumeRepo.ProduceTransaction(blockHash)
+func (c consumeService) Consume(number uint64) error {
+	blockAdaptorRes,err := c.ConsumeRepo.ProduceTransaction(number)
 	if err!=nil {
 		return err
 	}

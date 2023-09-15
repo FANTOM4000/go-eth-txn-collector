@@ -20,6 +20,9 @@ type elasticSearch struct {
 	Address  string `envconfig:"ELASTIC_ADDR" default:"localhost:9200"`
 	Username string `envconfig:"ELASTIC_USERNAME" default:"username"`
 	Password string `envconfig:"ELASTIC_PASSWORD" default:"password"`
+
+	Index        string `envconfig:"ELASTIC_INDEX" default:"transaction"`
+	AddressIndex string `envconfig:"ELASTIC_ADDRESS_INDEX" default:"address"`
 }
 
 var cfg config

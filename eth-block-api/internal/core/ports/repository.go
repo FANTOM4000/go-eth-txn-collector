@@ -6,7 +6,7 @@ import (
 )
 
 type EthRepositories interface {
-	GetTransactionByBlockHash(ctx context.Context, hex string) ([]domains.Transaction, error)
+	GetTransactionByBlockHash(ctx context.Context,number uint64) ([]domains.Transaction, error)
 }
 
 type TransactionQueRepositories interface {
