@@ -14,8 +14,10 @@ func NewHttpServer(blockHandler ports.BlockHandler) *fiber.App {
 	r.Use(logger.New(logger.Config{
 		Format: "[${time}] ${ip}  ${status} - ${latency} ${method} ${path}\n",
 	}))
-
-	r.Post("/block/number/{hex}/transactions",blockHandler.ProduceTrasactionFromBlockHash)
+	r.Get("/health", func(c *fiber.Ctx) error {
+		return c.SendString("running")
+	})
+	r.Post("block/number/:number/transactions",blockHandler.ProduceTrasactionFromBlockHash)
 
 	return r
 }

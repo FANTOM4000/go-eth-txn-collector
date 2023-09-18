@@ -15,6 +15,10 @@ func NewHttpServer(addressHandler ports.AddressHandler) *fiber.App {
 		Format: "[${time}] ${ip}  ${status} - ${latency} ${method} ${path}\n",
 	}))
 
+	r.Get("/health", func(c *fiber.Ctx) error {
+		return c.SendString("running")
+	})
+
 	addressGroup := r.Group("address")
 
 	addressGroup.Post("/", addressHandler.AddAddressToWatch)

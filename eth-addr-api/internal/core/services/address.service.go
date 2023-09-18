@@ -6,6 +6,7 @@ import (
 	"app/internal/core/ports"
 	"app/pkg/standard"
 	"context"
+	"strings"
 )
 
 type addressService struct {
@@ -18,6 +19,7 @@ func NewAddressService(addressRepositories ports.AddressRepositories, blockAdapt
 }
 
 func (a addressService) AddAddressToWatch(ctx context.Context, addr domains.Address, fromBlock int, toBlock int) (dto.BaseOKResponse, error) {
+	addr.Hex = strings.ToLower(addr.Hex)
 	_, err := a.addressRepositories.Create(ctx, addr)
 	if err != nil {
 		return dto.BaseOKResponse{
@@ -33,7 +35,7 @@ func (a addressService) AddAddressToWatch(ctx context.Context, addr domains.Addr
 			min = max
 			max = tmp
 		}
-		for i := min; i < max; i++ {
+		for i := min; i <= max; i++ {
 			_, err := a.blockAdaptorApi.ProduceTransaction(uint64(i))
 			if err != nil {
 				return dto.BaseOKResponse{

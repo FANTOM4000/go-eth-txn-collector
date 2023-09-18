@@ -8,5 +8,4 @@ type Transaction struct {
 	Nonce         uint64 `json:"nonce"`
 	Reciever      string `json:"reciever"`
 	Sender        string `json:"sender"`
-	ReceiptStatus uint64 `json:"receiptStatus"`
 }

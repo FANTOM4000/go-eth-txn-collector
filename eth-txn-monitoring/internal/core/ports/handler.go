@@ -9,6 +9,5 @@ type AddressHandler interface {
 }
 
 type TransactionHandler interface {
-	Save(ctx *fiber.Ctx) error
 	GetIncomingAndOutgoingOfAddress(ctx *fiber.Ctx) error
 }

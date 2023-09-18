@@ -14,7 +14,9 @@ func NewHttpServer(transactionHandler ports.TransactionHandler) *fiber.App {
 	r.Use(logger.New(logger.Config{
 		Format: "[${time}] ${ip}  ${status} - ${latency} ${method} ${path}\n",
 	}))
-
+	r.Get("/health", func(c *fiber.Ctx) error {
+		return c.SendString("running")
+	})
 	transactionGroup := r.Group("transaction")
 
 	transactionGroup.Post("/", transactionHandler.SaveTransactionData)

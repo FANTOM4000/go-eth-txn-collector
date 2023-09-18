@@ -75,6 +75,7 @@ func (t transactionRepositories) GetByContainAddress(ctx context.Context, addr s
 						},
 					},
 				},
+				// MatchAll: &types.MatchAllQuery{},
 			},
 			Size: &size,
 			From: &from,

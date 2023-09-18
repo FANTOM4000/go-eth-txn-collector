@@ -8,8 +8,9 @@ import (
 )
 
 type config struct {
-	Httpserver      httpserver
-	AddressAdaptorApi addressAdaptorApi
+	Httpserver            httpserver
+	AddressAdaptorApi     addressAdaptorApi
+	TransactionAdaptorApi transactionAdaptorApi
 }
 
 type httpserver struct {

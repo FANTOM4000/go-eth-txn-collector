@@ -14,16 +14,15 @@ func InitElasticSearch(ctx context.Context) *elasticsearch8.TypedClient {
 		Addresses: strings.Split(config.Get().ElasticSearch.Address, ","),
 		Username:  config.Get().ElasticSearch.Username,
 		Password:  config.Get().ElasticSearch.Password,
-		
 	})
 
 	if err != nil {
-		logger.Error("Cannot init elastic merchant client", logger.ErrField(err))
+		logger.Error("Cannot init elastic client", logger.ErrField(err))
 	}
 
 	_, err = es8.Info().Do(ctx)
 	if err != nil {
-		logger.Panic("Cannot get elastic merchant info")
+		logger.Panic("Cannot get elastic info", logger.ErrField(err))
 	}
 
 	return es8

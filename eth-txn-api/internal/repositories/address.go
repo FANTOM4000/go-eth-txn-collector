@@ -29,7 +29,7 @@ func NewAddressRepositories(ctx context.Context, elasticClient *elasticsearch8.T
 			},
 		}).Do(ctx)
 		if err != nil {
-			logger.Fatal("create indice with mapping error")
+			logger.Fatal("create indice with mapping error",logger.ErrField(err))
 		}
 	}
 

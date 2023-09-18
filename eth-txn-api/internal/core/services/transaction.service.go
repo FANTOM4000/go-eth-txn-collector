@@ -18,6 +18,7 @@ func NewTransactionService(transactionRepo ports.TransactionRepositories, addres
 	return transactionService{transactionRepo: transactionRepo, addressRepo: addressRepo}
 }
 func (t transactionService) Save(ctx context.Context, txn domains.Transaction) (dto.BaseOKResponseWithData[domains.Transaction], error) {
+
 	senderFound, err := t.addressRepo.CheckAddressExist(ctx, txn.Sender)
 	if err != nil {
 		logger.Error("check address sender error", logger.ErrField(err))
@@ -28,7 +29,6 @@ func (t transactionService) Save(ctx context.Context, txn domains.Transaction) (
 			},
 		}, err
 	}
-
 	recieverFound, err := t.addressRepo.CheckAddressExist(ctx, txn.Reciever)
 	if err != nil {
 		logger.Error("check address reciever error", logger.ErrField(err))

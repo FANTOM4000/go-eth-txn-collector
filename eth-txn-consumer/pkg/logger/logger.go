@@ -50,6 +50,10 @@ func Error(msg string, detail ...logrus.Fields) {
 	loginstance.WithFields(GenerateLogFields(detail...)).Error(msg)
 }
 
+func Panic(msg string, detail ...logrus.Fields) {
+	loginstance.WithFields(GenerateLogFields(detail...)).Error(msg)
+}
+
 func Fatal(msg string, detail ...logrus.Fields) {
 	loginstance.WithFields(GenerateLogFields(detail...)).Fatal(msg)
 }

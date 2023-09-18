@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"app/internal/core/ports"
+	"fmt"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
@@ -20,9 +21,8 @@ func (b blockQueRepositories) Produce(number uint64) error {
 
 	b.kafkaClient.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &b.Topic, Partition: -1},
-		Key:            []byte(string(number)),
-		Value:          []byte(string(number)),
+		Key:            []byte(fmt.Sprint(number)),
+		Value:          []byte(fmt.Sprint(number)),
 	}, deliverChan)
-	<-deliverChan
 	return nil
 }

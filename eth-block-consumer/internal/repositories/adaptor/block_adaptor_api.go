@@ -22,8 +22,9 @@ func (b blockAdaptorApiRepositories) ProduceTransaction(number uint64) (domains.
 	blockRes := new(domains.BlockAdaptorApiResponse)
 	resp, err := b.restyClient.R().
 		Post(fmt.Sprint(b.Url, "/block/number/", number, "/transactions"))
+	
 	jsoniter.Unmarshal(resp.Body(), &blockRes)
-
+	fmt.Println(string(resp.Body()))
 	if err != nil {
 		return domains.BlockAdaptorApiResponse{}, err
 	}

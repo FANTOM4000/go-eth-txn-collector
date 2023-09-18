@@ -1,44 +1,53 @@
 version: '3'
 services:
+  # repositories
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
-    container_name: zookeeper
     ports:
       - "2181:2181"
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
-    networks:
+    networks: 
       - eth-txn-collector-net
-
   kafka:
     image: confluentinc/cp-kafka:latest
-    container_name: kafka
     depends_on:
       - zookeeper
     ports:
-      - "9092:9092"
+      - '9092:9092'
+    expose:
+      - '29092'
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_LISTENERS: SASL_PLAINTEXT://:9092
-      KAFKA_ADVERTISED_LISTENERS: SASL_PLAINTEXT://kafka:9092
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: SASL_PLAINTEXT:SASL_PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: SASL_PLAINTEXT
-      KAFKA_LOG_DIRS: /var/lib/kafka/data
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
-      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
-      KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
-      KAFKA_SASL_JAAS_CONFIG: "org.apache.kafka.common.security.plain.PlainLoginModule required username='kafka_eth_txn_collector' password='KqxVe6NWKEVv53z';"
-    networks:
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: '1'
+      KAFKA_MIN_INSYNC_REPLICAS: '1'
+    networks: 
       - eth-txn-collector-net
-    command:
-      - bash
-      - -c
-      - |
-        kafka-topics --create --topic new.block --partitions 1 --replication-factor 100 --zookeeper zookeeper:2181 && \
-        kafka-topics --create --topic new.txn --partitions 1 --replication-factor 100 --zookeeper zookeeper:2181
+  init-kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - kafka
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      "
+      # blocks until kafka is reachable
+      kafka-topics --bootstrap-server kafka:29092 --list
 
+      echo -e 'Creating kafka topics'
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic new.block.topic --replication-factor 1 --partitions 1
+      kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic new.txn.topic --replication-factor 1 --partitions 1
+
+      echo -e 'Successfully created the following topics:'
+      kafka-topics --bootstrap-server kafka:29092 --list
+      "
+    networks: 
+      - eth-txn-collector-net
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.6.1
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.9.0
+    container_name: elasticsearch
     environment:
       - bootstrap.memory_lock=true
       - discovery.type=single-node
@@ -52,16 +61,143 @@ services:
     ports:
       - 9200:9200
     networks: ['eth-txn-collector-net']
-    
-  kibana:
-    image: docker.elastic.co/kibana/kibana:7.6.1
-    environment:
-      - ELASTICSEARCH_USERNAME=elastic
-      - ELASTICSEARCH_PASSWORD=xxxx
-    ports: ['5601:5601']
+    healthcheck:
+        test: ["CMD", "curl", "-f", "http://elastic:xxxx@localhost:9200/_cat/health"]
+        interval: 30s
+        timeout: 10s
+        retries: 5
+
+  # service
+  eth-txn-monitoring:
+    build:
+      context: ./eth-txn-monitoring
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "80:80"
     networks: ['eth-txn-collector-net']
-    links: ['elasticsearch']
-    depends_on: ['elasticsearch']
+    environment:
+      HTTP_PORT: 80
+      ADDRESS_ADAPTOR_API: http://eth-addr-api
+      TRANSACTION_ADAPTOR_API: http://eth-txn-api
+    depends_on:
+      - eth-addr-api
+      - eth-txn-api
+
+  eth-addr-api:
+    container_name: eth-addr-api
+    build:
+      context: ./eth-addr-api
+      dockerfile: Dockerfile
+    restart: always
+    networks: ['eth-txn-collector-net']
+    environment:
+      HTTP_PORT:  80
+      ELASTIC_ADDR: http://elasticsearch:9200
+      ELASTIC_USERNAME: elastic
+      ELASTIC_PASSWORD: xxxx
+      ELASTIC_INDEX:  addrs
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost/health"]
+        interval: 30s
+        timeout: 10s
+        retries: 5
+
+  eth-txn-api:
+    container_name: eth-txn-api
+    build:
+      context: ./eth-txn-api
+      dockerfile: Dockerfile
+    restart: always
+    networks: ['eth-txn-collector-net']
+    environment:
+      HTTP_PORT:  80
+      ELASTIC_ADDR: http://elasticsearch:9200
+      ELASTIC_USERNAME: elastic
+      ELASTIC_PASSWORD: xxxx
+      ELASTIC_INDEX:  transactions
+      ELASTIC_ADDRESS_INDEX:  addrs
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost/health"]
+        interval: 30s
+        timeout: 10s
+        retries: 5
+
+  eth-block-api:
+    container_name: eth-block-api
+    build:
+      context: ./eth-block-api
+      dockerfile: Dockerfile
+    restart: always
+    networks: ['eth-txn-collector-net']
+    environment:
+      HTTP_PORT:  80
+      KAFKA_SERVER: kafka:29092
+      KAFKA_GROUP: txn-group
+      KAFKA_TOPIC: new.txn.topic
+      ETH_NODE_URL: https://wiser-late-rain.discover.quiknode.pro/16f5dea93d7cc816f9f8c017a776ae2b658eb67d/
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+        test: ["CMD", "curl", "-f", "http://localhost/health"]
+        interval: 30s
+        timeout: 10s
+        retries: 100
+
+  eth-txn-consumer:
+    container_name: eth-txn-consumer
+    build:
+      context: ./eth-txn-consumer
+      dockerfile: Dockerfile
+    restart: always
+    networks: ['eth-txn-collector-net']
+    environment:
+      KAFKA_SERVER: kafka:29092
+      KAFKA_GROUP: txn-group
+      KAFKA_TOPIC: new.txn.topic
+      TRANSACTION_ADAPTOR_API: http://eth-txn-api
+    depends_on:
+      eth-txn-api:
+        condition: service_healthy
+
+  eth-block-consumer:
+    container_name: eth-block-consumer
+    build:
+      context: ./eth-block-consumer
+      dockerfile: Dockerfile
+    restart: always
+    networks: ['eth-txn-collector-net']
+    environment:
+      KAFKA_SERVER: kafka:29092
+      KAFKA_GROUP: block-group
+      KAFKA_TOPIC: new.block.topic
+      BLOCK_ADAPTOR_API: http://eth-block-api
+    depends_on:
+      eth-block-api:
+        condition: service_healthy
+
+  eth-block-listener:
+    container_name: eth-block-listener
+    build:
+      context: ./eth-block-listener
+      dockerfile: Dockerfile
+    restart: always
+    networks: ['eth-txn-collector-net']
+    environment:
+      KAFKA_SERVER: kafka:29092
+      KAFKA_GROUP: block-group
+      KAFKA_TOPIC: new.block.topic
+      ETH_WSS_NODE_URL: wss://wiser-late-rain.discover.quiknode.pro/16f5dea93d7cc816f9f8c017a776ae2b658eb67d/
+    depends_on:
+      eth-block-api:
+        condition: service_healthy
 
 networks:
   eth-txn-collector-net:

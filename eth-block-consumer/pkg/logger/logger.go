@@ -54,6 +54,10 @@ func Fatal(msg string, detail ...logrus.Fields) {
 	loginstance.WithFields(GenerateLogFields(detail...)).Fatal(msg)
 }
 
+func Panic(msg string, detail ...logrus.Fields) {
+	loginstance.WithFields(GenerateLogFields(detail...)).Panic(msg)
+}
+
 func StringField(key string, value interface{}) logrus.Fields {
 	return logrus.Fields{
 		key: value,

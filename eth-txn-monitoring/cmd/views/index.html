@@ -1,0 +1,241 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+  <title>Transaction collector</title>
+</head>
+<body>
+  <style>
+    div.a {
+  white-space: nowrap; 
+  width: 100px; 
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border: 1px solid #000000;
+}
+
+div.a:hover {
+  overflow: visible;
+  background-color: #000000;
+}
+  </style>
+  <div class="container-fluid">
+    <div class="row">
+      <div id="transactions" class="col-6" style="display: none;">
+        <table class="table table-dark mb-3 mt-3" id="table-transaction">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Hex</th>
+              <th scope="col">Value</th>
+              <th scope="col">Gas</th>
+              <th scope="col">GasPrice</th>
+              <th scope="col">Nonce</th>
+              <th scope="col">Sender</th>
+              <th scope="col">Reciever</th>
+              <th scope="col">Type</th>
+            </tr>
+          </thead>
+          <tbody id="table-body-transaction">
+          </tbody>
+        </table>
+      
+        <div class="btn-group" role="group" aria-label="Basic example">
+          <button onclick="loadTransaction('',0,10,-1)"  type="button" class="btn btn-secondary"><</button>
+          <button onclick="loadTransaction('',0,10,1)" type="button" class="btn btn-secondary">></button>
+        </div>
+      </div>
+      <div id="address" class="col-12">
+        <form id="add-address" class="input-group mb-3 mt-3">
+          <div class="input-group-prepend">
+            <span class="input-group-text" id="basic-addon1">Address</span>
+          </div>
+          <input type="text" name="hex" class="form-control" placeholder="Address" aria-label="Address" aria-describedby="basic-addon1">
+          <input type="number" name="fromBlock" placeholder="From block" aria-label="From block" class="form-control">
+          <input type="number" name="toBlock" placeholder="To block" aria-label="To block" class="form-control">
+          <div class="input-group-append">
+            <button class="btn btn-outline-secondary" type="submit">Add</button>
+          </div>
+        </form>
+    
+        <table class="table table-dark" id="table-addr">
+          <thead>
+            <tr>
+              <th scope="col">#</th>
+              <th scope="col">Addr</th>
+            </tr>
+          </thead>
+          <tbody >
+          </tbody>
+        </table>
+      </div>
+    </div>
+   
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-Fy6S3B9q64WdZWQUiU+q4/2Lc9npb8tCaSX9FK7E8HnRr0Jz8D6OP9dO5Vg3Q9ct" crossorigin="anonymous"></script>
+
+  <script>
+    const baseUrl = "http://localhost"
+    let toggleTransactio = false
+    window.onload = function() {
+      const formAddAddress = document.getElementById('add-address');
+      loadAddress()
+      
+      formAddAddress.addEventListener('submit', function(event) {
+        event.preventDefault();
+
+        const formData = new FormData(formAddAddress);
+
+        let hex = formData.get("hex")
+        let fromBlock = parseInt(formData.get("fromBlock")||0)
+        let toBlock = parseInt(formData.get("toBlock")||0)
+
+        const formValues = {
+          "hex":hex,
+          "fromBlock":fromBlock,
+          "toBlock":toBlock
+        };
+
+        console.log('Form data submitted:', formValues);
+        addAddress(formValues)
+        formAddAddress.reset();
+      });
+    };
+
+    function loadAddress(){
+      fetch(`${baseUrl}/get-address-all?page=1&perpage=100`, {
+        method: 'GET',
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.log(data)
+          if(data.data) {
+            let tableBody = document.getElementById('table-addr');
+
+            let tableHeaderRowCount =1
+            let rowCount = tableBody.rows.length;
+            for (let i = tableHeaderRowCount; i < rowCount; i++) {
+              tableBody.deleteRow(tableHeaderRowCount);
+            }
+            
+            for (let i in data.data) {
+              let addr = data.data[i]
+              // Create a new row
+              let newRow = tableBody.insertRow();
+
+              // Create cells for the row and populate them
+              let cell1 = newRow.insertCell(0);
+              let cell2 = newRow.insertCell(1);
+
+              // You can populate the cells with data as needed
+              cell1.innerHTML = parseInt(i)+1;
+              cell2.innerHTML = addr.hex;
+              newRow.onclick = function(){
+                console.log("click",addr.hex);
+                toggleTransactio = !toggleTransactio
+                if(toggleTransactio){
+                  document.getElementById("transactions").style.display = "block"
+                  document.getElementById("address").classList.remove("col-12")
+                  document.getElementById("address").classList.add("col-6")
+                  loadTransaction(addr.hex,1,10,0)
+                }else{
+                  document.getElementById("transactions").style.display = "none"
+                  document.getElementById("address").classList.remove("col-6")
+                  document.getElementById("address").classList.add("col-12")
+                }
+              }
+            }
+          }
+        })
+        .catch(error => console.error('Fetch error:', error));
+    }
+
+    async function addAddress(data) {
+      fetch(`${baseUrl}/add-ddress-to-watch`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+        .then(response => response.json())
+        .then(data => {
+          loadAddress()
+        })
+        .catch(error => console.error('Fetch error:', error));
+    }
+  
+    function weiToBueatiful(value){
+      if(value>1000000000000000000){
+        value = `~${(value/1000000000000000000).toFixed(2)} ETH`
+      }else if(value>1000000000){
+        value =  `${value/1000000000} Gwei`
+      }else{
+        `${value} wei`
+      }
+      return value
+    }
+  
+    async function loadTransaction(addr="",page=0,perpage=10,inc=0){
+      let tableBody = document.getElementById('table-transaction');
+      if (addr=="") {
+        addr = tableBody.getAttribute("addr")
+      }
+      if(page==0){
+        page= parseInt(tableBody.getAttribute("page"))+inc
+      }
+      if(page==0){
+        page=1
+      }
+      tableBody.setAttribute("addr",addr)
+      tableBody.setAttribute("page",page)
+      fetch(`${baseUrl}/all-transaction?adr=${addr}&page=${page}=1&perpage=${perpage}`, {
+        method: 'GET',
+      })
+        .then(response => response.json())
+        .then(data => {
+          if(data.data) {
+            let tbody = document.getElementById("table-body-transaction")
+            tbody.innerHTML=''
+            
+            for (let i in data.data) {
+              let txn = data.data[i]
+              // Create a new row
+              let newRow = tbody.insertRow();
+
+              // Create cells for the row and populate them
+              let cell1 = newRow.insertCell(0);
+              let cell2 = newRow.insertCell(1);
+              let cell3 = newRow.insertCell(2);
+              let cell4 = newRow.insertCell(3);
+              let cell5 = newRow.insertCell(4);
+              let cell6 = newRow.insertCell(5);
+              let cell7 = newRow.insertCell(6);
+              let cell8 = newRow.insertCell(7);
+              let cell9 = newRow.insertCell(8);
+
+              let value = txn.value
+              
+
+              // You can populate the cells with data as needed
+              cell1.innerHTML = parseInt(i)+1+((page-1)*perpage);
+              cell2.innerHTML = `<div class="a">${txn.hex}</div>`
+              cell3.innerHTML = `<div class="a">${weiToBueatiful(txn.value)}</div>` 
+              cell4.innerHTML = txn.gas
+              cell5.innerHTML = `<div class="a">${weiToBueatiful(txn.gasPrice)}</div>`
+              cell6.innerHTML = txn.nonce
+              cell7.innerHTML = `<div class="a">${txn.sender}</div>`
+              cell8.innerHTML = `<div class="a">${txn.reciever}</div>`
+              cell9.innerHTML = txn.sender == addr ? 'out' : 'in'
+
+            }
+          }
+        })
+        .catch(error => console.error('Fetch error:', error));
+    }
+  </script>
+</body>
+</html>

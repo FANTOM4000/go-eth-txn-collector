@@ -21,7 +21,7 @@ func main() {
 	logger.Initlogger()
 
 	elasticsearchClient := infrastructures.InitElasticSearch(ctx)
-	addressRepositoties := repositories.NewAddressRepositories(ctx, elasticsearchClient, config.Get().ElasticSearch.Index)
+	addressRepositoties := repositories.NewAddressRepositories(ctx, elasticsearchClient, config.Get().ElasticSearch.AddressIndex)
 	transactionRepositories := repositories.NewTransactionRepositories(ctx, elasticsearchClient, config.Get().ElasticSearch.Index)
 	transactionService := services.NewTransactionService(transactionRepositories, addressRepositoties)
 	transactionHandler := handler.NewTransactionHandler(transactionService)

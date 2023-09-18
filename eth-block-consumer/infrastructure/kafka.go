@@ -13,10 +13,11 @@ func InitKafkaConsumer() *kafka.Consumer {
 		"group.id":           config.Get().Kafka.Group,  // Replace with your consumer group name
 		"auto.offset.reset":  "earliest",                // Set the offset to the beginning (you can change to "latest" if you want the latest messages)
 		"enable.auto.commit": false,
-		"sasl.mechanism":     "PLAIN",
-		"security.protocol":  "SASL_PLAINTEXT",
-		"sasl.username":      config.Get().Kafka.Username, // Replace with your username
-		"sasl.password":      config.Get().Kafka.Password, // Replace with your password
+		// "sasl.mechanism":     "PLAIN",
+		// "security.protocol":  "SASL_PLAINTEXT",
+		// "sasl.username":      config.Get().Kafka.Username, // Replace with your username
+		// "sasl.password":      config.Get().Kafka.Password, // Replace with your password
+		"session.timeout.ms": 45000,
 	}
 	consumer, err := kafka.NewConsumer(cfg)
 	if err != nil {

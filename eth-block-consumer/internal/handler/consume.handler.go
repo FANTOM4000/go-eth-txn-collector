@@ -4,7 +4,12 @@ import (
 	"app/internal/core/ports"
 	"app/pkg/logger"
 	"fmt"
+	"log"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
+	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
@@ -16,40 +21,50 @@ type consumeHandler struct {
 }
 
 func NewConsumerHandler(consumer *kafka.Consumer, Topic string, consumeService ports.ConsumerService) ports.ConsumeHandler {
-	return consumeHandler{consumer: consumer, consumeService: consumeService}
+	return consumeHandler{consumer: consumer, consumeService: consumeService, Topic: Topic}
 }
 
 func (c consumeHandler) Consume() {
-	topics := []string{c.Topic}
-	err := c.consumer.SubscribeTopics(topics, nil)
+	topic := c.Topic
+	err := c.consumer.SubscribeTopics([]string{topic}, nil)
 	if err != nil {
-		logger.Error("Error subscribing to topics", logger.ErrField(err))
-		return
+		panic(fmt.Errorf("failed to subscribe topics : %s", err.Error()))
 	}
-	// Start consuming messages
-	logger.Info("Kafka consumer started. Waiting for messages...")
-	for {
+	// Set up a channel for handling Ctrl-C, etc
+	sigchan := make(chan os.Signal, 1)
+	signal.Notify(sigchan, syscall.SIGINT, syscall.SIGTERM)
+
+	// Process messages
+	log.Printf("consumer is running...\n")
+	run := true
+	for run {
 		select {
-		case ev := <-c.consumer.Events():
-			switch e := ev.(type) {
-			case *kafka.Message:
-				logger.Info("Received message", logger.StringField("topic", *e.TopicPartition.Topic), logger.StringField("partition", e.TopicPartition.Partition), logger.StringField("offset", e.TopicPartition.Offset), logger.StringField("message", string(e.Value)))
-				number,err := strconv.ParseUint(string(e.Value),10,64)
+		case sig := <-sigchan:
+			fmt.Printf("caught signal %v: terminating\n", sig)
+			run = false
+		default:
+			ev, err := c.consumer.ReadMessage(100 * time.Millisecond)
+			if err != nil {
+				// Errors are informational and automatically handled by the consumer
+				continue
+			}
+
+			log.Printf("consumed topic %s: partition: %d message: %s\n", *ev.TopicPartition.Topic, ev.TopicPartition.Partition, ev.Value)
+			switch *ev.TopicPartition.Topic {
+			case c.Topic:
+				number, err := strconv.ParseUint(string(ev.Value), 10, 64)
 				if err != nil {
 					logger.Error("error parse uint64", logger.ErrField(err))
 					return
 				}
 				err = c.consumeService.Consume(number)
 				if err != nil {
-					logger.Error("error consume", logger.ErrField(err))
+					logger.Panic("error consume", logger.ErrField(err))
 					return
 				}
-				c.consumer.Commit()
-			case kafka.Error:
-				fmt.Printf("Kafka error: %v\n", e)
-			default:
-				fmt.Printf("Ignored event: %v\n", e)
 			}
+
+			c.consumer.Commit()
 		}
 	}
 }
