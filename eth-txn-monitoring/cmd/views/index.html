@@ -192,7 +192,7 @@ div.a:hover {
       }
       tableBody.setAttribute("addr",addr)
       tableBody.setAttribute("page",page)
-      fetch(`${baseUrl}/all-transaction?adr=${addr}&page=${page}=1&perpage=${perpage}`, {
+      fetch(`${baseUrl}/all-transaction?adr=${addr}&page=${page}&perpage=${perpage}`, {
         method: 'GET',
       })
         .then(response => response.json())
@@ -219,7 +219,6 @@ div.a:hover {
 
               let value = txn.value
               
-
               // You can populate the cells with data as needed
               cell1.innerHTML = parseInt(i)+1+((page-1)*perpage);
               cell2.innerHTML = `<div class="a">${txn.hex}</div>`
