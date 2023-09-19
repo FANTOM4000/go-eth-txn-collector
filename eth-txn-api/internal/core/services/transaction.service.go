@@ -43,7 +43,8 @@ func (t transactionService) Save(ctx context.Context, txn domains.Transaction) (
 	if senderFound || recieverFound {
 		tx, err := t.transactionRepo.Save(ctx, txn)
 		if err != nil {
-			logger.Error("error save transaction", logger.ErrField(err))
+			logger.Error("error save transaction",logger.Field("txn",txn), logger.ErrField(err))
+			
 			return dto.BaseOKResponseWithData[domains.Transaction]{
 				BaseOKResponse: dto.BaseOKResponse{
 					Code:    standard.CreateError,

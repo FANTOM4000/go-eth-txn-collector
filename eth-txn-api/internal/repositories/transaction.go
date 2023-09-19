@@ -27,8 +27,13 @@ func NewTransactionRepositories(ctx context.Context, elasticClient *elasticsearc
 		_, err := elasticClient.Indices.Create(index).Request(&create.Request{
 			Mappings: &types.TypeMapping{
 				Properties: map[string]types.Property{
+					"hex":      types.NewKeywordProperty(),
 					"sender":   types.NewKeywordProperty(),
 					"reciever": types.NewKeywordProperty(),
+					"value":    types.NewUnsignedLongNumberProperty(),
+					"gas":      types.NewUnsignedLongNumberProperty(),
+					"gasPrice": types.NewUnsignedLongNumberProperty(),
+					"nonce":    types.NewUnsignedLongNumberProperty(),
 				},
 			},
 		}).Do(ctx)

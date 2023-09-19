@@ -27,7 +27,7 @@ func NewAddressRepositories(ctx context.Context, elasticClient *elasticsearch8.T
 		_, err := elasticClient.Indices.Create(index).Request(&create.Request{
 			Mappings: &types.TypeMapping{
 				Properties: map[string]types.Property{
-					"addr": types.NewKeywordProperty(),
+					"hex": types.NewKeywordProperty(),
 				},
 			},
 		}).Do(ctx)
