@@ -18,6 +18,7 @@ Wait until all services start then go to [Open](http://localhost)
 - Fill address to address box system will be collect incoming and outgoing transactions of specified Ethereum addresses .
 - If you want to collect history transaction, define from block and to block to collect .
 - Clock Add button
+- To see transaction click on address row
 ![alt](https://github.com/FANTOM4000/go-eth-txn-collector/blob/main/example.png?raw=true)
 ## HLD
 ![alt](https://github.com/FANTOM4000/go-eth-txn-collector/blob/main/hld.png?raw=true)
