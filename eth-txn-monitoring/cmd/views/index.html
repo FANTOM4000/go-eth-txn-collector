@@ -132,7 +132,7 @@ div.a:hover {
 
               // You can populate the cells with data as needed
               cell1.innerHTML = parseInt(i)+1;
-              cell2.innerHTML = addr.hex;
+              cell2.innerHTML = `<a href="#"> ${addr.hex} </a>` ;
               newRow.onclick = function(){
                 console.log("click",addr.hex);
                 toggleTransactio = !toggleTransactio
